@@ -17,10 +17,11 @@ conda activate pytorch181
 
 3. Install dependencies
 ```
-conda install pytorch=1.12 torchvision cudatoolkit=10.2 -c pytorch
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
 pip install matplotlib scikit-learn scikit-image opencv-python yacs joblib natsort h5py tqdm
 pip install einops gdown addict future lmdb numpy pyyaml requests scipy tb-nightly yapf lpips
 pip install pytorch_wavelets
+pip install PyWavelets
 ```
 
 4. Install basicsr

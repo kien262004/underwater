@@ -1,5 +1,5 @@
 # general settings
-name: DefocusDeblur_DualPixel_16bit_Restormer
+name: WaveletFourierUnderWaterNet
 model_type: ImageCleanModel
 scale: 1
 num_gpu: 1  # set num_gpu: 0 for cpu mode
@@ -9,12 +9,10 @@ manual_seed: 100
 datasets:
   train:
     name: TrainSet
-    type: Dataset_DefocusDeblur_DualPixel_16bit
-    dataroot_gt: ./Defocus_Deblurring/Datasets/train/DPDD/target_crops
-    dataroot_lqL: ./Defocus_Deblurring/Datasets/train/DPDD/inputL_crops
-    dataroot_lqR: ./Defocus_Deblurring/Datasets/train/DPDD/inputR_crops
+    type: Dataset_PairedImage
+    dataroot_gt: ./Under_Water/Datasets/LSUI/LSUI/GT
+    dataroot_lq: ./Under_Water/Datasets/LSUI/LSUI/input
     geometric_augs: true
-
     filename_tmpl: '{}'
     io_backend:
       type: disk
@@ -43,10 +41,9 @@ datasets:
 
   val:
     name: ValSet
-    type: Dataset_DefocusDeblur_DualPixel_16bit
-    dataroot_gt: ./Defocus_Deblurring/Datasets/val/DPDD/target_crops
-    dataroot_lqL: ./Defocus_Deblurring/Datasets/val/DPDD/inputL_crops
-    dataroot_lqR: ./Defocus_Deblurring/Datasets/val/DPDD/inputR_crops
+    type: Dataset_PairedImage
+    dataroot_gt: ./Under_Water/Datasets/LSUI/LSUI/GT
+    dataroot_lq: ./Under_Water/Datasets/LSUI/LSUI/input
     io_backend:
       type: disk
 

@@ -10,8 +10,8 @@ datasets:
   train:
     name: TrainSet
     type: Dataset_PairedImage
-    dataroot_gt: ./Under_Water/Datasets/EUVP/Paired/total/trainA
-    dataroot_lq: ./Under_Water/Datasets/EUVP/Paired/total/trainB
+    dataroot_gt: ./Under_Water/Datasets/EUVP/Paired/total/trainB
+    dataroot_lq: ./Under_Water/Datasets/EUVP/Paired/total/trainA
     geometric_augs: true
     filename_tmpl: '{}'
     io_backend:

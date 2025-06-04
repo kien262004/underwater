@@ -10,8 +10,8 @@ datasets:
   train:
     name: TrainSet
     type: Dataset_PairedImage
-    dataroot_gt: ./Under_Water/Datasets/LSUI/LSUI/GT
-    dataroot_lq: ./Under_Water/Datasets/LSUI/LSUI/input
+    dataroot_gt: ./Under_Water/Datasets/EUVP/Paired/total/trainA
+    dataroot_lq: ./Under_Water/Datasets/EUVP/Paired/total/trainB
     geometric_augs: true
     filename_tmpl: '{}'
     io_backend:
@@ -42,8 +42,8 @@ datasets:
   val:
     name: ValSet
     type: Dataset_PairedImage
-    dataroot_gt: ./Under_Water/Datasets/LSUI/LSUI/GT
-    dataroot_lq: ./Under_Water/Datasets/LSUI/LSUI/input
+    dataroot_gt: ./Under_Water/Datasets/EUVP/test_samples/GTr
+    dataroot_lq: ./Under_Water/Datasets/EUVP/test_samples/Inp
     io_backend:
       type: disk
 

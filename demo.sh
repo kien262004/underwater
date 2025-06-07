@@ -1,0 +1,1 @@
+python demo.py --input_dir datasets/'EUVP Dataset'/test_samples/Inp/ --result_dir demo/restored/ --task UnderWater

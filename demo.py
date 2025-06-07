@@ -26,14 +26,8 @@ import numpy as np
 parser = argparse.ArgumentParser(description='Test Restormer on your own images')
 parser.add_argument('--input_dir', default='./demo/degraded/', type=str, help='Directory of input images or path of single image')
 parser.add_argument('--result_dir', default='./demo/restored/', type=str, help='Directory for restored results')
-parser.add_argument('--task', required=True, type=str, help='Task to run', choices=['Motion_Deblurring',
-                                                                                    'Single_Image_Defocus_Deblurring',
-                                                                                    'Deraining',
-                                                                                    'Real_Denoising',
-                                                                                    'Gaussian_Gray_Denoising',
-                                                                                    'Gaussian_Color_Denoising'])
+parser.add_argument('--task', required=True, type=str, help='Task to run', choices=["UnderWater"])
 parser.add_argument('--tile', type=int, default=None, help='Tile size (e.g 720). None means testing on the original resolution image')
-parser.add_argument('--tile_overlap', type=int, default=32, help='Overlapping of different tiles')
 
 args = parser.parse_args()
 
@@ -50,23 +44,8 @@ def save_gray_img(filepath, img):
     cv2.imwrite(filepath, img)
 
 def get_weights_and_parameters(task, parameters):
-    if task == 'Motion_Deblurring':
-        weights = os.path.join('Motion_Deblurring', 'pretrained_models', 'motion_deblurring.pth')
-    elif task == 'Single_Image_Defocus_Deblurring':
-        weights = os.path.join('Defocus_Deblurring', 'pretrained_models', 'single_image_defocus_deblurring.pth')
-    elif task == 'Deraining':
-        weights = os.path.join('Deraining', 'pretrained_models', 'deraining.pth')
-    elif task == 'Real_Denoising':
-        weights = os.path.join('Denoising', 'pretrained_models', 'real_denoising.pth')
-        parameters['LayerNorm_type'] =  'BiasFree'
-    elif task == 'Gaussian_Color_Denoising':
-        weights = os.path.join('Denoising', 'pretrained_models', 'gaussian_color_denoising_blind.pth')
-        parameters['LayerNorm_type'] =  'BiasFree'
-    elif task == 'Gaussian_Gray_Denoising':
-        weights = os.path.join('Denoising', 'pretrained_models', 'gaussian_gray_denoising_blind.pth')
-        parameters['inp_channels'] =  1
-        parameters['out_channels'] =  1
-        parameters['LayerNorm_type'] =  'BiasFree'
+    if task == 'UnderWater':
+        weights = os.path.join('Under_Water', 'pretrained_models', 'model.pth')
     return weights, parameters
 
 task    = args.task
@@ -89,11 +68,11 @@ if len(files) == 0:
     raise Exception(f'No files found at {inp_dir}')
 
 # Get model weights and parameters
-parameters = {'inp_channels':3, 'out_channels':3, 'dim':48, 'num_blocks':[4,6,6,8], 'num_refinement_blocks':4, 'heads':[1,2,4,8], 'ffn_expansion_factor':2.66, 'bias':False, 'LayerNorm_type':'WithBias', 'dual_pixel_task':False}
+parameters = {'inp_channels': 3, 'out_channels': 3, 'dim': 32, 'num_heads': [1,2,4,8], 'ffn_expansion_factor': 2, 'stages': 2, 'bias': False, 'LayerNorm_type': 'WithBias'}
 weights, parameters = get_weights_and_parameters(task, parameters)
 
 load_arch = run_path(os.path.join('basicsr', 'models', 'archs', 'restormer_arch.py'))
-model = load_arch['Restormer'](**parameters)
+model = load_arch['WFUWNet'](**parameters)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
@@ -112,10 +91,8 @@ with torch.no_grad():
             torch.cuda.ipc_collect()
             torch.cuda.empty_cache()
 
-        if task == 'Gaussian_Gray_Denoising':
-            img = load_gray_img(file_)
-        else:
-            img = load_img(file_)
+
+        img = load_img(file_)
 
         input_ = torch.from_numpy(img).float().div(255.).permute(2,0,1).unsqueeze(0).to(device)
 
@@ -129,28 +106,6 @@ with torch.no_grad():
         if args.tile is None:
             ## Testing on the original resolution image
             restored = model(input_)
-        else:
-            # test the image tile by tile
-            b, c, h, w = input_.shape
-            tile = min(args.tile, h, w)
-            assert tile % 8 == 0, "tile size should be multiple of 8"
-            tile_overlap = args.tile_overlap
-
-            stride = tile - tile_overlap
-            h_idx_list = list(range(0, h-tile, stride)) + [h-tile]
-            w_idx_list = list(range(0, w-tile, stride)) + [w-tile]
-            E = torch.zeros(b, c, h, w).type_as(input_)
-            W = torch.zeros_like(E)
-
-            for h_idx in h_idx_list:
-                for w_idx in w_idx_list:
-                    in_patch = input_[..., h_idx:h_idx+tile, w_idx:w_idx+tile]
-                    out_patch = model(in_patch)
-                    out_patch_mask = torch.ones_like(out_patch)
-
-                    E[..., h_idx:(h_idx+tile), w_idx:(w_idx+tile)].add_(out_patch)
-                    W[..., h_idx:(h_idx+tile), w_idx:(w_idx+tile)].add_(out_patch_mask)
-            restored = E.div_(W)
 
         restored = torch.clamp(restored, 0, 1)
 
@@ -162,9 +117,7 @@ with torch.no_grad():
 
         f = os.path.splitext(os.path.split(file_)[-1])[0]
         # stx()
-        if task == 'Gaussian_Gray_Denoising':
-            save_gray_img((os.path.join(out_dir, f+'.png')), restored)
-        else:
-            save_img((os.path.join(out_dir, f+'.png')), restored)
+        
+        save_img((os.path.join(out_dir, f+'.png')), restored)
 
     print(f"\nRestored images are saved at {out_dir}")

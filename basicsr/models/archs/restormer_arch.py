@@ -189,7 +189,8 @@ class Downsample(nn.Module):
     def __init__(self, n_feat):
         super(Downsample, self).__init__()
 
-        self.body = nn.Sequential(nn.Conv2d(n_feat, n_feat//2, kernel_size=3, stride=1, padding=1, bias=False),
+        self.body = nn.Sequential(nn.Conv2d(n_feat, n_feat, kernel_size=3, stride=1, padding=1, bias=False, groups=n_feat),
+                                  nn.Conv2d(n_feat, n_feat//2, kernel_size=1, stride=1, bias=False),
                                   nn.PixelUnshuffle(2))
 
     def forward(self, x):
@@ -199,7 +200,7 @@ class Upsample(nn.Module):
     def __init__(self, n_feat):
         super(Upsample, self).__init__()
 
-        self.body = nn.Sequential(nn.Conv2d(n_feat, n_feat, kernel_size=3, stride=1, padding=1, bias=False),
+        self.body = nn.Sequential(nn.Conv2d(n_feat, n_feat, kernel_size=3, stride=1, padding=1, bias=False, groups=n_feat),
                                   nn.Conv2d(n_feat, 2*n_feat, kernel_size=1, stride=1, bias=False),
                                   nn.PixelShuffle(2))
 
@@ -266,13 +267,14 @@ class HighFrequencyBlock(nn.Module):
     ):
         super(HighFrequencyBlock, self).__init__()
         self.fuse_conv = nn.Sequential(*[
-            nn.Conv2d(channels*3, channels, 1),
-            # nn.Conv2d(channels, channels, 3, 1, 1)
+            nn.Conv2d(channels*3, channels, kernel_size=1),
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
+            nn.Conv2d(channels, channels, kernel_size=1)
         ])
         self.attn = Attention(channels, num_heads, bias)
         self.split_conv  = nn.Sequential(*[
-            # nn.Conv2d(channels, channels, 3, 1, 1),
-            nn.Conv2d(channels, channels*3, 1)
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
+            nn.Conv2d(channels, channels*3, kernel_size=1)
         ])
     
     def forward(self, x):
@@ -317,8 +319,9 @@ class SCFNBlock(nn.Module): # ref: Mishra_U-ENHANCE_Underwater_Image_Enhancement
     
     def forward(self, x):
         out = self.norm(x)
-        out = self.conv(self.prj_conv1(out))
-        out = self.act(out) * out
+        out = self.prj_conv1(out)
+        out1 = self.conv(out)
+        out = self.act(out1) * out
         out = self.prj_conv2(out) + x
         return out
 
@@ -404,6 +407,6 @@ if __name__ == '__main__':
     img = torch.randn((1, 3, 512, 512))
 
     model = WFUWNet()
-
+    print(model(img).shape)
     total_params = sum(p.numel() for p in model.parameters())
     print(f'Tổng số tham số: {total_params}')

@@ -281,7 +281,38 @@ class HighFrequencyBlock(nn.Module):
         b, c, n, h, w = x.shape
         x = rearrange(x, 'b c n h w -> b (c n) h w')
         x = self.fuse_conv(x)
-        x = self.attn(x)
+        x = x + self.attn(x)
+        x = self.split_conv(x)
+        out = rearrange(x, 'b (c n) h w -> b c n h w', n = n)  # đúng shape (B, C, 3, H, W)
+        return out
+    
+class HighFrequencyBlock_02(nn.Module):
+    def __init__(self,
+        channels,     
+        num_heads=8,
+        bias=True
+    ):
+        super(HighFrequencyBlock_02, self).__init__()
+        self.fuse_conv = nn.Sequential(*[
+            nn.Conv2d(channels*3, channels, kernel_size=1),
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
+            nn.Conv2d(channels, channels, kernel_size=1)
+        ])
+        self.attn = nn.Sequential(*[
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
+            nn.Conv2d(channels, channels, kernel_size=1),
+            nn.Sigmoid()
+        ])
+        self.split_conv  = nn.Sequential(*[
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
+            nn.Conv2d(channels, channels*3, kernel_size=1)
+        ])
+    
+    def forward(self, x):
+        b, c, n, h, w = x.shape
+        x = rearrange(x, 'b c n h w -> b (c n) h w')
+        x = self.fuse_conv(x)
+        x = x * self.attn(x)
         x = self.split_conv(x)
         out = rearrange(x, 'b (c n) h w -> b c n h w', n = n)  # đúng shape (B, C, 3, H, W)
         return out
@@ -292,7 +323,7 @@ class DWTBlock(nn.Module):
         self.norm = LayerNorm(channels, LayerNorm_type)
         self.xfm = DWTForward(J=1, mode='zero', wave='haar')   # DWT
         self.ifm = DWTInverse(mode='zero', wave='haar')        # IDWT
-        self.high_branch = HighFrequencyBlock(channels, num_heads, bias)
+        self.high_branch = HighFrequencyBlock_02(channels, num_heads, bias)
         self.low_branch = LowFrequencyBlock(channels)
         self.prj_conv = nn.Conv2d(channels, channels, 1)
         
@@ -314,7 +345,7 @@ class SCFNBlock(nn.Module): # ref: Mishra_U-ENHANCE_Underwater_Image_Enhancement
         self.norm = LayerNorm(channels, LayerNorm_type)
         self.prj_conv1 = nn.Conv2d(channels, hidden_channels, 1)
         self.conv = nn.Conv2d(hidden_channels, hidden_channels, 3, 1, 1, groups=hidden_channels)
-        self.act = nn.Sigmoid()
+        self.act = nn.GELU()
         self.prj_conv2 = nn.Conv2d(hidden_channels, channels, 1)
     
     def forward(self, x):
@@ -341,7 +372,7 @@ class Block(nn.Module):
         out = self.dwtblock(x)
         out = self.refine(x)
         return out
-
+    
 class WFUWNet(nn.Module):
     def __init__(self, 
         inp_channels=3,

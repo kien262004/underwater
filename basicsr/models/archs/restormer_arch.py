@@ -323,7 +323,7 @@ class DWTBlock(nn.Module):
         self.norm = LayerNorm(channels, LayerNorm_type)
         self.xfm = DWTForward(J=1, mode='zero', wave='haar')   # DWT
         self.ifm = DWTInverse(mode='zero', wave='haar')        # IDWT
-        self.high_branch = HighFrequencyBlock_02(channels, num_heads, bias)
+        # self.high_branch = HighFrequencyBlock_02(channels, num_heads, bias)
         self.low_branch = LowFrequencyBlock(channels)
         self.prj_conv = nn.Conv2d(channels, channels, 1)
         
@@ -331,9 +331,9 @@ class DWTBlock(nn.Module):
     def forward(self, x):
         x = self.norm(x)
         x_low, x_high  = self.xfm(x)
-        out_high = self.high_branch(x_high[0])
+        # out_high = self.high_branch(x_high[0])
         out_low = self.low_branch(x_low)
-        out = self.ifm((out_low, [out_high]))
+        out = self.ifm((out_low, x_high))
         out = self.prj_conv(out)
         out = out + x
         return out

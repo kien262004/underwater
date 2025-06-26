@@ -1,0 +1,47 @@
+{
+  "os":  "Windows-10-10.0.22631-SP0",
+  "python":  "CPython 3.10.16",
+  "startedAt":  "2025-06-25T17:26:44.782190Z",
+  "args":  [
+    "-opt",
+    "Under_Water/Options/underwater.yml"
+  ],
+  "program":  "E:\\study\\project\\underwater\\Restormer\\basicsr\\train.py",
+  "codePath":  "basicsr\\train.py",
+  "git":  {
+    "remote":  "https://github.com/kien262004/underwater.git",
+    "commit":  "42ec533492ab8e1d6625b4a0b2973b5b2d3ecd6a"
+  },
+  "email":  "nkien6827@gmail.com",
+  "root":  "E:\\study\\project\\underwater\\Restormer",
+  "host":  "LAPTOP-SGTKL4F8",
+  "executable":  "C:\\Users\\ADMIN\\anaconda3\\envs\\underwater\\python.exe",
+  "codePathLocal":  "basicsr\\train.py",
+  "cpu_count":  14,
+  "cpu_count_logical":  20,
+  "gpu":  "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "512092008448",
+      "used":  "363896664064"
+    }
+  },
+  "memory":  {
+    "total":  "16781979648"
+  },
+  "cpu":  {
+    "count":  14,
+    "countLogical":  20
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "memoryTotal":  "4294967296",
+      "cudaCores":  2048,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-c80f8f72-cc4a-42c9-baeb-953637bd7186"
+    }
+  ],
+  "cudaVersion":  "12.3"
+}

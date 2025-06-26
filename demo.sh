@@ -1,1 +1,1 @@
-python demo.py --input_dir datasets/raw-890/ --result_dir demo/restored/ --task UnderWater
+python demo.py --input_dir Under_Water/Datasets/EUVP/test_samples/Inp/ --result_dir demo/EUVP/ --task UnderWater

@@ -118,7 +118,7 @@ logger:
   save_checkpoint_freq: !!float 4e3
   use_tb_logger: true
   wandb:
-    project: ~
+    project: underwater
     resume_id: ~
 
 # dist training settings

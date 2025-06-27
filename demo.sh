@@ -1,1 +1,1 @@
-python demo.py --input_dir Under_Water/Datasets/EUVP/test_samples/Inp/ --result_dir demo/EUVP/ --task UnderWater
+python demo.py --input_dir datasets/EUVP/test_samples/Inp/ --result_dir demo/EUVP/ --task UnderWater

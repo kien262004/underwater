@@ -1,0 +1,155 @@
+_wandb:
+    value:
+        cli_version: 0.20.1
+        m: []
+        python_version: 3.10.16
+        t:
+            "1":
+                - 1
+                - 41
+            "3":
+                - 13
+                - 14
+                - 16
+                - 35
+                - 55
+            "4": 3.10.16
+            "5": 0.20.1
+            "8":
+                - 3
+            "12": 0.20.1
+            "13": windows-amd64
+datasets:
+    value:
+        train:
+            batch_size_per_gpu: 8
+            dataroot_gt: ./Under_Water/Datasets/EUVP/Paired/total/trainB
+            dataroot_lq: ./Under_Water/Datasets/EUVP/Paired/total/trainA
+            dataset_enlarge_ratio: 1
+            filename_tmpl: '{}'
+            geometric_augs: true
+            gt_size: 256
+            gt_sizes:
+                - 256
+            io_backend:
+                type: disk
+            iters:
+                - 300000
+            mini_batch_sizes:
+                - 8
+            name: TrainSet
+            num_worker_per_gpu: 8
+            phase: train
+            prefetch_mode: null
+            scale: 1
+            type: Dataset_PairedImage
+            use_shuffle: true
+        val:
+            dataroot_gt: ./Under_Water/Datasets/EUVP/test_samples/GTr
+            dataroot_lq: ./Under_Water/Datasets/EUVP/test_samples/Inp
+            io_backend:
+                type: disk
+            name: ValSet
+            phase: val
+            scale: 1
+            type: Dataset_PairedImage
+dist:
+    value: false
+dist_params:
+    value:
+        backend: nccl
+        port: 29500
+is_train:
+    value: true
+logger:
+    value:
+        print_freq: 1000
+        save_checkpoint_freq: 4000
+        use_tb_logger: true
+        wandb:
+            project: underwater
+            resume_id: null
+manual_seed:
+    value: 100
+model_type:
+    value: ImageCleanModel
+name:
+    value: WaveletFourierUnderWaterNet
+network_g:
+    value:
+        LayerNorm_type: WithBias
+        bias: false
+        dim: 32
+        ffn_expansion_factor: 2
+        inp_channels: 3
+        num_heads:
+            - 1
+            - 2
+            - 4
+            - 8
+        out_channels: 3
+        stages: 2
+        type: WFUWNet
+num_gpu:
+    value: 1
+path:
+    value:
+        experiments_root: e:\study\project\underwater\restormer\experiments\WaveletFourierUnderWaterNet
+        log: e:\study\project\underwater\restormer\experiments\WaveletFourierUnderWaterNet
+        models: e:\study\project\underwater\restormer\experiments\WaveletFourierUnderWaterNet\models
+        pretrain_network_g: null
+        resume_state: null
+        root: e:\study\project\underwater\restormer
+        strict_load_g: true
+        training_states: e:\study\project\underwater\restormer\experiments\WaveletFourierUnderWaterNet\training_states
+        visualization: e:\study\project\underwater\restormer\experiments\WaveletFourierUnderWaterNet\visualization
+rank:
+    value: 0
+scale:
+    value: 1
+train:
+    value:
+        mixing_augs:
+            mixup: false
+            mixup_beta: 1.2
+            use_identity: true
+        optim_g:
+            betas:
+                - 0.9
+                - 0.999
+            lr: 0.0003
+            type: AdamW
+            weight_decay: 0.0001
+        pixel_opt:
+            loss_weight: 1
+            reduction: mean
+            type: L1Loss
+        scheduler:
+            eta_mins:
+                - 0.0003
+                - 1e-06
+            periods:
+                - 92000
+                - 208000
+            restart_weights:
+                - 1
+                - 1
+            type: CosineAnnealingRestartCyclicLR
+        total_iter: 300000
+        use_grad_clip: true
+        warmup_iter: -1
+val:
+    value:
+        max_minibatch: 8
+        metrics:
+            psnr:
+                crop_border: 0
+                test_y_channel: false
+                type: calculate_psnr
+        rgb2bgr: true
+        save_img: false
+        use_image: false
+        val_freq: 4000
+        window_size: 8
+world_size:
+    value: 1

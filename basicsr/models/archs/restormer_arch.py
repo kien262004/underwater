@@ -310,11 +310,12 @@ class HighFrequencyBlock_02(nn.Module):
     
     def forward(self, x):
         b, c, n, h, w = x.shape
-        x = rearrange(x, 'b c n h w -> b (c n) h w')
-        x = self.fuse_conv(x)
-        x = x * self.attn(x)
-        x = self.split_conv(x)
-        out = rearrange(x, 'b (c n) h w -> b c n h w', n = n)  # đúng shape (B, C, 3, H, W)
+        out = rearrange(x, 'b c n h w -> b (c n) h w')
+        out = self.fuse_conv(out)
+        out = out * self.attn(out)
+        out = self.split_conv(out)
+        out = rearrange(out, 'b (c n) h w -> b c n h w', n = n)   # đúng shape (B, C, 3, H, W)
+        out = x + out
         return out
     
 class DWTBlock(nn.Module):
@@ -323,7 +324,7 @@ class DWTBlock(nn.Module):
         self.norm = LayerNorm(channels, LayerNorm_type)
         self.xfm = DWTForward(J=1, mode='zero', wave='haar')   # DWT
         self.ifm = DWTInverse(mode='zero', wave='haar')        # IDWT
-        # self.high_branch = HighFrequencyBlock_02(channels, num_heads, bias)
+        self.high_branch = HighFrequencyBlock_02(channels, num_heads, bias)
         self.low_branch = LowFrequencyBlock(channels)
         self.prj_conv = nn.Conv2d(channels, channels, 1)
         
@@ -331,9 +332,9 @@ class DWTBlock(nn.Module):
     def forward(self, x):
         x = self.norm(x)
         x_low, x_high  = self.xfm(x)
-        # out_high = self.high_branch(x_high[0])
+        out_high = self.high_branch(x_high[0])
         out_low = self.low_branch(x_low)
-        out = self.ifm((out_low, x_high))
+        out = self.ifm((out_low, [out_high]))
         out = self.prj_conv(out)
         out = out + x
         return out

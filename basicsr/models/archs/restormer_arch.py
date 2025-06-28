@@ -356,6 +356,108 @@ class SCFNBlock(nn.Module): # ref: Mishra_U-ENHANCE_Underwater_Image_Enhancement
         out = self.act(out1) * out
         out = self.prj_conv2(out) + x
         return out
+    
+class MLP(nn.Module):
+    def __init__(self, dim, mlp_ratio=4):
+        super().__init__()
+
+        self.out_channels = dim * mlp_ratio
+
+        self.norm = LayerNorm(dim, eps=1e-6, data_format="channels_first")
+
+        self.fc1 = nn.Conv2d(dim, dim * mlp_ratio, 1)
+        self.pos = nn.Conv2d(dim * mlp_ratio, dim * mlp_ratio,
+                             3, padding=1, groups=dim * mlp_ratio)
+        self.fc2 = nn.Conv2d(dim * mlp_ratio, dim, 1)
+        self.act = nn.GELU()
+
+        scale_sobel_x = torch.randn(size=(dim * mlp_ratio, 1, 1, 1)) * 1e-3
+        self.scale_sobel_x = nn.Parameter(torch.FloatTensor(scale_sobel_x))
+        sobel_x_bias = torch.randn(dim * mlp_ratio) * 1e-3
+        sobel_x_bias = torch.reshape(sobel_x_bias, (dim * mlp_ratio,))
+        self.sobel_x_bias = nn.Parameter(torch.FloatTensor(sobel_x_bias))
+        self.mask_sobel_x = torch.zeros(
+            (dim * mlp_ratio, 1, 3, 3), dtype=torch.float32)
+        for i in range(dim * mlp_ratio):
+            self.mask_sobel_x[i, 0, 0, 1] = 1.0
+            self.mask_sobel_x[i, 0, 1, 0] = 2.0
+            self.mask_sobel_x[i, 0, 2, 0] = 1.0
+            self.mask_sobel_x[i, 0, 0, 2] = -1.0
+            self.mask_sobel_x[i, 0, 1, 2] = -2.0
+            self.mask_sobel_x[i, 0, 2, 2] = -1.0
+        self.mask_sobel_x = nn.Parameter(
+            data=self.mask_sobel_x, requires_grad=False)
+
+        scale_sobel_y = torch.randn(size=(dim * mlp_ratio, 1, 1, 1)) * 1e-3
+        self.scale_sobel_y = nn.Parameter(torch.FloatTensor(scale_sobel_y))
+        sobel_y_bias = torch.randn(dim * mlp_ratio) * 1e-3
+        sobel_y_bias = torch.reshape(sobel_y_bias, (dim * mlp_ratio,))
+        self.sobel_y_bias = nn.Parameter(torch.FloatTensor(sobel_y_bias))
+        self.mask_sobel_y = torch.zeros(
+            (dim * mlp_ratio, 1, 3, 3), dtype=torch.float32)
+        for i in range(dim * mlp_ratio):
+            self.mask_sobel_y[i, 0, 0, 0] = 1.0
+            self.mask_sobel_y[i, 0, 0, 1] = 2.0
+            self.mask_sobel_y[i, 0, 0, 2] = 1.0
+            self.mask_sobel_y[i, 0, 2, 0] = -1.0
+            self.mask_sobel_y[i, 0, 2, 1] = -2.0
+            self.mask_sobel_y[i, 0, 2, 2] = -1.0
+        self.mask_sobel_y = nn.Parameter(
+            data=self.mask_sobel_y, requires_grad=False)
+
+        scale_laplacian = torch.randn(size=(dim * mlp_ratio, 1, 1, 1)) * 1e-3
+        self.scale_laplacian = nn.Parameter(torch.FloatTensor(scale_laplacian))
+        laplacian_bias = torch.randn(dim * mlp_ratio) * 1e-3
+        laplacian_bias = torch.reshape(laplacian_bias, (dim * mlp_ratio,))
+        self.laplacian_bias = nn.Parameter(torch.FloatTensor(laplacian_bias))
+        self.mask_laplacian = torch.zeros(
+            (dim * mlp_ratio, 1, 3, 3), dtype=torch.float32)
+        for i in range(dim * mlp_ratio):
+            self.mask_laplacian[i, 0, 0, 0] = 1.0
+            self.mask_laplacian[i, 0, 1, 0] = 1.0
+            self.mask_laplacian[i, 0, 1, 2] = 1.0
+            self.mask_laplacian[i, 0, 2, 1] = 1.0
+            self.mask_laplacian[i, 0, 1, 1] = -4.0
+        self.mask_laplacian = nn.Parameter(
+            data=self.mask_laplacian, requires_grad=False)
+
+    def forward(self, x):
+
+        x = self.norm(x)
+        x = self.fc1(x)
+        x = self.act(x)
+        # x = x + self.act(self.pos(x))
+        out = self.pos(x)
+        if not self.merge_kernel:
+            out += F.conv2d(input=x, weight=self.scale_sobel_x * self.mask_sobel_x,
+                            bias=self.sobel_x_bias, stride=1, padding=1, groups=self.out_channels)
+            out += F.conv2d(input=x, weight=self.scale_sobel_y * self.mask_sobel_y,
+                            bias=self.sobel_y_bias, stride=1, padding=1, groups=self.out_channels)
+            out += F.conv2d(input=x, weight=self.scale_laplacian * self.mask_laplacian,
+                            bias=self.laplacian_bias, stride=1, padding=1, groups=self.out_channels)
+        x = x + self.act(out)
+        x = self.fc2(x)
+
+        return x
+
+    def merge_mlp(self,):
+        inf_kernel = self.scale_sobel_x * self.mask_sobel_x + \
+            self.scale_sobel_y * self.mask_sobel_y + \
+            self.scale_laplacian * self.mask_laplacian + self.pos.weight
+        inf_bias = self.sobel_x_bias+self.sobel_y_bias + \
+            self.laplacian_bias+self.pos.bias
+        self.merge_kernel = True
+        self.pos.weight.data = inf_kernel
+        self.pos.bias.data = inf_bias
+        self.__delattr__('scale_sobel_x')
+        self.__delattr__('mask_sobel_x')
+        self.__delattr__('sobel_x_bias')
+        self.__delattr__('sobel_y_bias')
+        self.__delattr__('mask_sobel_y')
+        self.__delattr__('scale_sobel_y')
+        self.__delattr__('laplacian_bias')
+        self.__delattr__('scale_laplacian')
+        self.__delattr__('mask_laplacian')
 
 class Block(nn.Module):
     def __init__(self, 
@@ -371,7 +473,7 @@ class Block(nn.Module):
     
     def forward(self, x):
         out = self.dwtblock(x)
-        out = self.refine(x)
+        out = self.refine(out)
         return out
     
 class WFUWNet(nn.Module):

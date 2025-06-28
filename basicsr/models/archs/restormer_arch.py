@@ -252,7 +252,7 @@ class LowFrequencyBlock(nn.Module):
         
         x_out = torch.complex(real, imag)
         out = torch.fft.irfft2(x_out, s=(H, W), norm='backward')
-        out = out
+        out = out + x
 
         return out
 
@@ -301,7 +301,7 @@ class HighFrequencyBlock_02(nn.Module):
         self.attn = nn.Sequential(*[
             nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
             nn.Conv2d(channels, channels, kernel_size=1),
-            nn.Sigmoid()
+            nn.Tanh()
         ])
         self.split_conv  = nn.Sequential(*[
             nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, groups=channels),
@@ -315,7 +315,7 @@ class HighFrequencyBlock_02(nn.Module):
         out = out * self.attn(out)
         out = self.split_conv(out)
         out = rearrange(out, 'b (c n) h w -> b c n h w', n = n)   # đúng shape (B, C, 3, H, W)
-        out = x + out
+        out = x + x * out
         return out
     
 class DWTBlock(nn.Module):
@@ -330,8 +330,8 @@ class DWTBlock(nn.Module):
         
     
     def forward(self, x):
-        x = self.norm(x)
-        x_low, x_high  = self.xfm(x)
+        out = self.norm(x)
+        x_low, x_high  = self.xfm(out)
         out_high = self.high_branch(x_high[0])
         out_low = self.low_branch(x_low)
         out = self.ifm((out_low, [out_high]))
